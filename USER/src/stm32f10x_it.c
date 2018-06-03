@@ -168,6 +168,7 @@ void macUSART1_IRQHandler( void )
 
             if(POSITIVE_ACK == g_rx_buf[2])      // 如果是正应答帧,不压栈
             {
+            /*
                 if ( g_rx_buf[1] == g_uiCurNum ) //卡取走信息序号判断,如果序号
                 {
                     g_uiCurNum = 0;
@@ -175,11 +176,13 @@ void macUSART1_IRQHandler( void )
                     g_siStatusOverTimeS = 0;
                     g_ucaDeviceStatus[g_ucCurOutCardId - 1] = 0;
                 }
+            */
                 g_num = 0;
                 g_rx_buf[g_num] = 0;
             }
             else if (NAGATIVE_ACK == g_rx_buf[2])
             {
+
                 g_num = 0;
                 g_rx_buf[g_num] = 0;
             }
@@ -187,12 +190,12 @@ void macUSART1_IRQHandler( void )
             {
 
                 // 禁止串口接收中断
-                USART_ITConfig(macUSART1, USART_IT_RXNE, DISABLE);
+                //USART_ITConfig(macUSART1, USART_IT_RXNE, DISABLE);
                 g_tP_RsctlFrame.RSCTL = g_rx_buf[1];
-                printf ("%s\n",(char *)&g_tP_RsctlFrame);   //发送正应答帧
+                //printf ("%s\n",(char *)&g_tP_RsctlFrame);   //发送正应答帧
                 // 使能串口接收中断
-                USART_ITConfig(macUSART1, USART_IT_RXNE, ENABLE);
-
+                //USART_ITConfig(macUSART1, USART_IT_RXNE, ENABLE);
+                g_ucP_RsctlFrame = 1;
                 g_rx_buf[g_num + 1] = 0;    // 加上行尾标识符
                 /* 发布消息到消息队列 queue */
                 uartInQueue( &g_tUARTRxQueue, g_rx_buf ); // 不考虑竞争,所以不设置自旋锁
@@ -209,11 +212,11 @@ void macUSART1_IRQHandler( void )
             {
 
                 // 禁止串口接收中断
-                USART_ITConfig(macUSART1, USART_IT_RXNE, DISABLE);
+                //USART_ITConfig(macUSART1, USART_IT_RXNE, DISABLE);
                 g_tN_RsctlFrame.RSCTL = g_rx_buf[1];
                 printf ("%s\n",(char *)&g_tN_RsctlFrame);   //发送负应答帧
                 // 使能串口接收中断
-                USART_ITConfig(macUSART1, USART_IT_RXNE, ENABLE);
+                //USART_ITConfig(macUSART1, USART_IT_RXNE, ENABLE);
 
                 g_num = 0;
                 g_rx_buf[g_num] = 0;

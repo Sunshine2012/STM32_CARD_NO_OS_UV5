@@ -23,6 +23,10 @@ u8 g_ucaHasBadCard[4]  = {0, 0, 0, 0};  // 有坏卡
 u8 g_ucaMasterStandbyStatus[4]  = {0, 0, 0, 0};  // 卡机的主备机状态
 u8 g_ucaStatus[4]  = {0x0a, 0x0a, 0x0a, 0x0a};      // 卡机的工作状态
 
+u8 g_ucP_RsctlFrame = 0;                 // 收到一帧正确的数据
+u8 g_ucIsUpdateMsgFlag = 0;              // 向PC上报卡机消息标志位
+u8 g_ucIsCycleMsgFlag = 0;               // 向卡机发送定时查询消息标志位
+
 u8 g_ucKeyPressCount = 0;                // 在2秒钟连续按键6次,则重启设备
 
 CanQueue  g_tCanRxQueue = {0};        // CAN接收卡机数据队列
@@ -152,7 +156,7 @@ int main( void )
     g_ucIsSetting = 0;
     bspInit();
 
-    printf ("%s","你好,欢迎使用乐为电子板卡系统");
+    printf ("%s\n","你好, 欢迎使用乐为电子板卡系统");
 
     STMFLASH_Read(FLASH_SAVE_ADDR,(u16*)&g_ucConnectMode,1);                    // 获取g_ucConnectMode值,默认为上位机离线发卡模式
 
@@ -165,20 +169,20 @@ int main( void )
 
 
     myCANTransmit( gt_TxMessage, g_ucUpWorkingID, 0, CYCLE_ASK, 0, 0, 0, 0 ); // 查询是否有卡
-    delayMs( 10 ); // 等待卡机回复
+    delayMs( 5 ); // 等待卡机回复
     myCANTransmit( gt_TxMessage, g_ucUpBackingID, 0, CYCLE_ASK, 0, 0, 0, 0 ); // 查询是否有卡
-    delayMs( 10 ); // 等待卡机回复
+    delayMs( 5 ); // 等待卡机回复
     myCANTransmit( gt_TxMessage, g_ucDownWorkingID, 0, CYCLE_ASK, 0, 0, 0, 0 ); // 查询是否有卡
-    delayMs( 10 ); // 等待卡机回复
+    delayMs( 5 ); // 等待卡机回复
     myCANTransmit( gt_TxMessage, g_ucDownBackingID, 0, CYCLE_ASK, 0, 0, 0, 0 ); // 查询是否有卡
 
-    delayMs( 10 ); // 等待卡机回复
+    delayMs( 5 ); // 等待卡机回复
     myCANTransmit( gt_TxMessage, g_ucUpWorkingID, 0, SET_MECHINE_STATUS, WORKING_STATUS, 0, 0, 0 ); // 设置工作态
-    delayMs( 10 ); // 等待卡机回复
+    delayMs( 5 ); // 等待卡机回复
     myCANTransmit( gt_TxMessage, g_ucUpBackingID, 0, SET_MECHINE_STATUS, BACKING_STATUS, 0, 0, 0 ); // 设置备用态
-    delayMs( 10 ); // 等待卡机回复
+    delayMs( 5 ); // 等待卡机回复
     myCANTransmit( gt_TxMessage, g_ucDownWorkingID, 0, SET_MECHINE_STATUS, WORKING_STATUS, 0, 0, 0 ); // 设置工作态
-    delayMs( 10 ); // 等待卡机回复
+    delayMs( 5 ); // 等待卡机回复
     myCANTransmit( gt_TxMessage, g_ucDownBackingID, 0, SET_MECHINE_STATUS, BACKING_STATUS, 0, 0, 0 ); // 设置备用态
 
     printf ("the code version %s,%s\n", __DATE__,__TIME__); // 打印当前版本号和编译日期
@@ -207,11 +211,53 @@ int main( void )
     TIM_Cmd(GENERAL_TIM2, ENABLE);
     // 使能计数器
     TIM_Cmd(GENERAL_TIM3, ENABLE);
+    //g_ucIsSetting = 0;
+    //g_ucCurDlg = DLG_STATUS;
+    //g_ucIsUpdateMenu = 1;
 
     while ( 1 )
     {
-        ret = canOutQueue( &g_tCanRxQueue, &g_tCanRxMsg );
 
+        if ( 1 == g_ucP_RsctlFrame )
+        {
+            g_ucP_RsctlFrame = 0;
+            // 禁止串口接收中断
+            //USART_ITConfig(macUSART1, USART_IT_RXNE, DISABLE);
+            printf ("%s\n",(char *)&g_tP_RsctlFrame);   //发送正应答帧
+            // 使能串口接收中断
+            //USART_ITConfig(macUSART1, USART_IT_RXNE, ENABLE);
+        }
+
+        if ( 1 == g_ucIsUpdateMsgFlag )
+        {
+            g_ucIsUpdateMsgFlag = 0;
+            printf ( "%s\n", ( char * ) &g_tCardMechineStatusFrame );// 2秒上报一次系统消息
+        }
+
+        if ( 1 == g_ucIsCycleMsgFlag )
+        {
+            g_ucIsCycleMsgFlag = 0;
+            myCANTransmit( gt_TxMessage, g_ucUpWorkingID, 0, CYCLE_ASK, 0, 0, 0, 0 ); // 查询是否有卡
+            delayMs ( 1 );
+            myCANTransmit( gt_TxMessage, g_ucUpBackingID, 0, CYCLE_ASK, 0, 0, 0, 0 ); // 查询是否有卡
+            delayMs ( 1 );
+            myCANTransmit( gt_TxMessage, g_ucDownWorkingID, 0, CYCLE_ASK, 0, 0, 0, 0 ); // 查询是否有卡
+            delayMs ( 1 );
+            myCANTransmit( gt_TxMessage, g_ucDownBackingID, 0, CYCLE_ASK, 0, 0, 0, 0 ); // 查询是否有卡
+
+            g_ucaMasterStandbyStatus[0] = 0;
+            g_ucaMasterStandbyStatus[1] = 0;
+            g_ucaMasterStandbyStatus[2] = 0;
+            g_ucaMasterStandbyStatus[3] = 0;
+            g_ucaStatus[0] = 0x0a;
+            g_ucaStatus[1] = 0x0a;
+            g_ucaStatus[2] = 0x0a;
+            g_ucaStatus[3] = 0x0a;
+            g_siCheckStatus = 5;        // 收到定时轮询的信息之后,50ms发送一次检验主备机的状态
+        }
+
+        memset ( &g_tCanRxMsg,0,sizeof (g_tCanRxMsg) );
+        ret = canOutQueue( &g_tCanRxQueue, &g_tCanRxMsg );
         if ( 0 == ret )
         {
             analyzeCANFrame( g_tCanRxMsg );
@@ -219,7 +265,6 @@ int main( void )
 
         memset ( g_ucaUartRxMsg,0,50 );
         ret = uartOutQueue( &g_tUARTRxQueue, g_ucaUartRxMsg );
-
         if ( 0 == ret )
         {
             analyzeUartFrame( g_ucaUartRxMsg, strlen( (const char *)g_ucaUartRxMsg ) );

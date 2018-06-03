@@ -55,7 +55,8 @@ void  GENERAL_TIM2_IRQHandler (void)
         g_tCardMechineStatusFrame.RSCTL = (g_uiSerNumPC++ % 10) + '0';
         g_tCardMechineStatusFrame.UP_SPIT_IS_OK = g_ucUpWorkingID + '0';
         g_tCardMechineStatusFrame.DOWN_SPIT_IS_OK = g_ucDownWorkingID + '0';
-        printf ( "%s\n", ( char * ) &g_tCardMechineStatusFrame );// 2秒上报一次系统消息
+        g_ucIsUpdateMsgFlag = 1;
+        //printf ( "%s\n", ( char * ) &g_tCardMechineStatusFrame );// 2秒上报一次系统消息
 
 
         if ( g_siCycleAskMsgTime > 0 )
@@ -63,6 +64,8 @@ void  GENERAL_TIM2_IRQHandler (void)
             if ( --g_siCycleAskMsgTime == 0 )
             {
                 g_siCycleAskMsgTime = 2;
+                g_ucIsCycleMsgFlag = 1;
+                /*
                 myCANTransmit( gt_TxMessage, g_ucUpWorkingID, 0, CYCLE_ASK, 0, 0, 0, 0 ); // 查询是否有卡
                 //delayMs ( 1 );
                 myCANTransmit( gt_TxMessage, g_ucUpBackingID, 0, CYCLE_ASK, 0, 0, 0, 0 ); // 查询是否有卡
@@ -80,6 +83,7 @@ void  GENERAL_TIM2_IRQHandler (void)
                 g_ucaStatus[2] = 0x0a;
                 g_ucaStatus[3] = 0x0a;
                 g_siCheckStatus = 5;        // 收到定时轮询的信息之后,50ms发送一次检验主备机的状态
+                */
             }
         }
 
@@ -145,11 +149,12 @@ void  GENERAL_TIM3_IRQHandler (void)
                         {
                             g_siOutCardMsgTime--;
                             g_siStatusOverTimeL = 1000;
-                            g_siStatusOverTimeS = 150;
+                            g_siStatusOverTimeS = 300;
                             myCANTransmit ( gt_TxMessage, g_ucCurOutCardId, 0, WRITE_CARD_STATUS, CARD_IS_OK, 0, 0, NO_FAIL );
                         }
                         break;
                     case 6:
+                        /*
                         if ( g_siCardTakeMsgTime > 0)
                         {
                             g_siCardTakeMsgTime--;
@@ -167,6 +172,7 @@ void  GENERAL_TIM3_IRQHandler (void)
                         {
                             g_uiCurNum = 0;
                         }
+                        */
                         break;
 
                     default:
@@ -228,7 +234,7 @@ void  GENERAL_TIM3_IRQHandler (void)
                     g_siaCheck[i] = 1200;
                     if ( 0x0a == g_ucaStatus [i] )
                     {
-                        myCANTransmit( gt_TxMessage, i + 1, 0, CARD_MACHINE_RESET, 0, 0, 0, NO_FAIL );
+                        //myCANTransmit( gt_TxMessage, i + 1, 0, CARD_MACHINE_RESET, 0, 0, 0, NO_FAIL );
 
                         g_ucaFaultCode[i] = FAULT_CODE11;
                         g_ucIsNewWarningCode = 1;
@@ -279,7 +285,6 @@ void  GENERAL_TIM3_IRQHandler (void)
                                     g_ucDownBackingID   = 4;
                                     myCANTransmit ( gt_TxMessage, g_ucDownWorkingID, 0, SET_MECHINE_STATUS, WORKING_STATUS, 0, 0, NO_FAIL );
                                     myCANTransmit ( gt_TxMessage, g_ucDownBackingID, 0, SET_MECHINE_STATUS, BACKING_STATUS, 0, 0, NO_FAIL ); // 设置工作态
-
                                  }
                                 break;
                             default:
@@ -298,12 +303,12 @@ static void GENERAL_TIM2_NVIC_Config(void)
 {
     NVIC_InitTypeDef NVIC_InitStructure;
     // 设置中断组为0
-    NVIC_PriorityGroupConfig(NVIC_PriorityGroup_0);
+    NVIC_PriorityGroupConfig(NVIC_PriorityGroup_2);
     // 设置中断来源
     NVIC_InitStructure.NVIC_IRQChannel = GENERAL_TIM2_IRQ ;
     // 设置主优先级为 0
     NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0;
-    // 设置抢占优先级为3
+    // 设置抢占优先级为2
     NVIC_InitStructure.NVIC_IRQChannelSubPriority = 2;
     NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
     NVIC_Init(&NVIC_InitStructure);
@@ -356,7 +361,7 @@ static void GENERAL_TIM3_NVIC_Config(void)
 {
     NVIC_InitTypeDef NVIC_InitStructure;
     // 设置中断组为0
-    NVIC_PriorityGroupConfig(NVIC_PriorityGroup_0);
+    NVIC_PriorityGroupConfig(NVIC_PriorityGroup_2);
     // 设置中断来源
     NVIC_InitStructure.NVIC_IRQChannel = GENERAL_TIM3_IRQ ;
     // 设置主优先级为 0

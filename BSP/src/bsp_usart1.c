@@ -27,14 +27,14 @@ static void UART1_NVIC_Configuration(void)
   NVIC_InitTypeDef NVIC_InitStructure;
 
   /* 嵌套向量中断控制器组选择 */
-  NVIC_PriorityGroupConfig(NVIC_PriorityGroup_2);
+  NVIC_PriorityGroupConfig(NVIC_PriorityGroup_0);
 
   /* 配置USART为中断源 */
   NVIC_InitStructure.NVIC_IRQChannel = macUSART1_IRQ;
   /* 抢断优先级*/
-  NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 1;
+  NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0;
   /* 子优先级 */
-  NVIC_InitStructure.NVIC_IRQChannelSubPriority = 1;
+  NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;
   /* 使能中断 */
   NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
   /* 初始化配置NVIC */
@@ -64,7 +64,7 @@ void USART1_Config(void)
 
     // 将USART Rx的GPIO配置为浮空输入模式
     GPIO_InitStructure.GPIO_Pin = macUSART1_RX_PIN;
-    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN_FLOATING;
+    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IPU;
     GPIO_Init(macUSART1_RX_PORT, &GPIO_InitStructure);
 
     // 配置串口的工作参数
