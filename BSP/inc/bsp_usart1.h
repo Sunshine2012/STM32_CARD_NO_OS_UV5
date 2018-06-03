@@ -43,10 +43,27 @@
 */
 #endif
 
+// 串口发送对应的DMA请求通道
+#define  USART1_TX_DMA_CHANNEL     DMA1_Channel4
+
+// 串口接收对应的DMA请求通道
+#define  USART1_RX_DMA_CHANNEL     DMA1_Channel5
+
+// 外设寄存器地址
+#define  USART1_DR_ADDRESS         (USART1_BASE+0x04)
+
+// 一次发送的数据量
+#define  SENDBUFF_SIZE            50
+
+extern u8 g_ucaBuff[SENDBUFF_SIZE];
+extern u8 g_ucaRxBuf[SENDBUFF_SIZE]; // 使用全局的数据缓存
+extern u8 g_num;
+
 void USART1_Config(void);
 void USART1_SendByte( USART_TypeDef * pUSARTx, uint8_t ch);
 void USART1_nSendString( USART_TypeDef * pUSARTx, char *str,int n);
 void USART1_SendString( USART_TypeDef * pUSARTx, char *str);
 void USART1_SendHalfWord( USART_TypeDef * pUSARTx, uint16_t ch);
+void USART1_DMA_Config(void);
 
 #endif /* __USART_H */

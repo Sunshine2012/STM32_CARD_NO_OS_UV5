@@ -145,9 +145,7 @@ void SysTick_Handler(void)
 /*  file (startup_stm32f10x_xx.s).                                            */
 /******************************************************************************/
 
-u8 g_rx_buf[1024]; // 使用全局的数据缓存
-u8 g_num = 0;
-
+#if 0
 // 串口中断服务函数
 // 把接收到的数据存在一个数组缓冲区里面，当接收到的的值等于">"时，把值返回
 void macUSART1_IRQHandler( void )
@@ -224,6 +222,68 @@ void macUSART1_IRQHandler( void )
         }
     }
 }
+#endif
+
+// 串口中断服务函数
+// 把接收到的数据存在一个数组缓冲区里面，当接收到的的值等于">"时，把值返回
+void macUSART1_IRQHandler( void )
+{
+    static u16 i = 0;
+    if ( USART_GetITStatus( macUSART1, USART_IT_IDLE ) != RESET )
+    {
+        i = USART1->SR;
+        i = USART1->DR;
+        USART_ClearITPendingBit(macUSART1, USART_IT_IDLE);
+
+        g_num = SENDBUFF_SIZE - DMA_GetCurrDataCounter (USART1_RX_DMA_CHANNEL);
+        // printf ("%d\r\n",g_num);
+        g_ucaRxBuf[g_num] = 0;    // 加上行尾标识符
+        // printf ("%s\r\n",g_ucaRxBuf);
+
+        if ( FRAME_START ==  g_ucaRxBuf[0] \
+          && FRAME_END == g_ucaRxBuf[g_num - 1] )
+        {
+            // 如果是正负应答帧,不入队列
+            if( POSITIVE_ACK == g_ucaRxBuf[2] \
+             || NAGATIVE_ACK == g_ucaRxBuf[2] )
+            {
+                g_num = 0;
+                g_ucaRxBuf[0] = 0;
+                DMA1_Channel5->CNDTR = SENDBUFF_SIZE;
+                return;
+            }
+
+            //DMA_ClearITPendingBit(DMA_IT_HT);//清除传输过半中断标志
+            //DMA_ClearITPendingBit(DMA_IT_TC);
+            DMA_Cmd(USART1_RX_DMA_CHANNEL, DISABLE);//关闭DMA,防止处理其间有数据
+            // 禁止串口空闲中断
+            //USART_ITConfig(macUSART1, USART_IT_IDLE, DISABLE);
+            g_tP_RsctlFrame.RSCTL = g_ucaRxBuf[1];
+            g_ucP_RsctlFrame = 1;
+            g_ucaRxBuf[g_num + 1] = 0;    // 加上行尾标识符
+            /* 发布消息到消息队列 queue */
+            uartInQueue( &g_tUARTRxQueue, g_ucaRxBuf ); // 不考虑竞争,所以不设置自旋锁
+
+            g_num = 0;
+            g_ucaRxBuf[0] = 0;
+            DMA1_Channel5->CNDTR = SENDBUFF_SIZE;
+            //memset( g_ucaRxBuf, 0, sizeof( g_ucaRxBuf ) );
+            DMA_Cmd(USART1_RX_DMA_CHANNEL, ENABLE);//开启DMA
+        }
+        else // 发送负应答
+        {
+            //g_tN_RsctlFrame.RSCTL = g_ucaRxBuf[1] + '0';
+            printf ("%s\n",(char *)&g_tN_RsctlFrame);   //发送负应答帧
+
+            g_num = 0;
+            g_ucaRxBuf[0] = 0;
+            DMA_Cmd(USART1_RX_DMA_CHANNEL, DISABLE);//关闭DMA,防止处理其间有数据
+            DMA1_Channel5->CNDTR = SENDBUFF_SIZE;
+            DMA_Cmd(USART1_RX_DMA_CHANNEL, ENABLE);//开启DMA
+        }
+    }
+}
+
 
 #if uart4
 
