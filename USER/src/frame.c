@@ -281,7 +281,8 @@ u8 analyzeCANFrame ( CanRxMsg arg )
                         g_tCardKeyPressFrame.RSCTL = (g_uiSerNumPC++ % 10) + '0';
                         g_tCardKeyPressFrame.MECHINE_ID = mtRxMessage.Data[1] + '0';        // 将数据转换为字符,然后将数据发送出去
                         g_tCardKeyPressFrame.CARD_MECHINE = mtRxMessage.Data[1] <= 2 ? '1' : '2';   //
-                        printf ( "%s\n", ( char * ) &g_tCardKeyPressFrame );
+                        //printf ( "%s\n", ( char * ) &g_tCardKeyPressFrame );
+                        USART1_SendStringFromDMA ((char *)&g_tCardKeyPressFrame , strlen ((char *)&g_tCardKeyPressFrame)); // 按键消息
                         g_siStatusOverTimeL = 1000;         // 一定时间如果还没有发卡完成,故障处理
                         //g_siStatusOverTimeS = 500;          //还没有完成发卡,则上报按键
 
@@ -455,7 +456,8 @@ u8 analyzeCANFrame ( CanRxMsg arg )
                 g_tCardSpitOutFrame.RSCTL = (g_uiSerNumPC++ % 10) + '0';
                 g_tCardSpitOutFrame.CARD_MECHINE = mtRxMessage.Data[1] <= 2 ? '1' : '2';
                 g_tCardSpitOutFrame.MECHINE_ID = mtRxMessage.Data[1] + '0';
-                printf ("%s\n", (char *)&g_tCardSpitOutFrame);
+                //printf ("%s\n", (char *)&g_tCardSpitOutFrame);
+                USART1_SendStringFromDMA ((char *)&g_tCardSpitOutFrame , strlen ((char *)&g_tCardSpitOutFrame));
 
                 TIM_SetCounter(GENERAL_TIM2, 0);      // 定时器清零,2s之后再次上报消息
 
@@ -475,7 +477,8 @@ u8 analyzeCANFrame ( CanRxMsg arg )
                 g_tCardMechineStatusFrame.UP_SPIT_IS_OK = g_ucUpWorkingID + '0';
                 g_tCardMechineStatusFrame.DOWN_SPIT_IS_OK = g_ucDownWorkingID + '0';
 
-                printf ( "%s\n", ( char * ) &g_tCardMechineStatusFrame );
+                //printf ( "%s\n", ( char * ) &g_tCardMechineStatusFrame );
+                USART1_SendStringFromDMA ((char *)&g_tCardMechineStatusFrame , strlen ((char *)&g_tCardMechineStatusFrame));
 
                 g_siStatusOverTimeL = 1000;
                 g_siStatusOverTimeS = 0;
@@ -503,7 +506,8 @@ u8 analyzeCANFrame ( CanRxMsg arg )
                 g_tCardTakeAwayFrame.RSCTL = (g_uiSerNumPC++ % 10) + '0';
                 g_tCardTakeAwayFrame.MECHINE_ID = mtRxMessage.Data[1] + '0';
                 g_tCardTakeAwayFrame.CARD_MECHINE = mtRxMessage.Data[1] < 3 ? '1' : '2';
-                printf ( "%s\n", ( char * ) &g_tCardTakeAwayFrame );
+                //printf ( "%s\n", ( char * ) &g_tCardTakeAwayFrame );
+                USART1_SendStringFromDMA ((char *)&g_tCardTakeAwayFrame , strlen ((char *)&g_tCardTakeAwayFrame));
 
                 //g_uiCurNum = g_tCardTakeAwayFrame.RSCTL;
                 //g_siCardTakeMsgTime = 3;
@@ -592,14 +596,14 @@ u8 analyzeCANFrame ( CanRxMsg arg )
                             myCANTransmit ( gt_TxMessage, g_ucUpWorkingID, 0, SET_MECHINE_STATUS, WORKING_STATUS, 0, 0, NO_FAIL );
                             myCANTransmit ( gt_TxMessage, g_ucUpBackingID, 0, SET_MECHINE_STATUS, BACKING_STATUS, 0, 0, NO_FAIL ); // 设置工作态
 
-                            //if ( g_ucaDeviceStatus[0] > 0 )
                             if ( ( FAULT_CODE06 == g_ucaFaultCode[0] ) \
                               || ( FAULT_CODE07 == g_ucaFaultCode[0] ) )    // 翻卡电机正转或者反转失败导致的发卡失败
                             {
                                 g_tCardSpitOutFrame.RSCTL = (g_uiSerNumPC++ % 10) + '0';
                                 g_tCardSpitOutFrame.CARD_MECHINE = '3';
                                 g_tCardSpitOutFrame.MECHINE_ID = mtRxMessage.Data[1] + '0';
-                                printf ("%s\n", (char *)&g_tCardSpitOutFrame);
+                                //printf ("%s\n", (char *)&g_tCardSpitOutFrame);
+                                USART1_SendStringFromDMA ((char *)&g_tCardSpitOutFrame , strlen ((char *)&g_tCardSpitOutFrame));
                             }
                             g_tCardMechineStatusFrame.RSCTL = (g_uiSerNumPC++ % 10) + '0';
                             g_tCardMechineStatusFrame.CARD_MECHINE1.antHasCard = g_ucaCardIsReady[0] + '0';
@@ -607,7 +611,8 @@ u8 analyzeCANFrame ( CanRxMsg arg )
                             g_tCardMechineStatusFrame.UP_SPIT_IS_OK = g_ucUpWorkingID + '0';
                             g_tCardMechineStatusFrame.DOWN_SPIT_IS_OK = g_ucDownWorkingID + '0';
 
-                            printf ( "%s\n", ( char * ) &g_tCardMechineStatusFrame );
+                            //printf ( "%s\n", ( char * ) &g_tCardMechineStatusFrame );
+                            USART1_SendStringFromDMA ((char *)&g_tCardMechineStatusFrame , strlen ((char *)&g_tCardMechineStatusFrame));
 
                             g_ucaDeviceStatus[0] = 0;
                         }
@@ -624,14 +629,14 @@ u8 analyzeCANFrame ( CanRxMsg arg )
                             myCANTransmit ( gt_TxMessage, g_ucUpWorkingID, 0, SET_MECHINE_STATUS, WORKING_STATUS, 0, 0, NO_FAIL );
                             myCANTransmit ( gt_TxMessage, g_ucUpBackingID, 0, SET_MECHINE_STATUS, BACKING_STATUS, 0, 0, NO_FAIL ); // 设置工作态
 
-                            //if ( g_ucaDeviceStatus[1] > 0 )
                             if ( ( FAULT_CODE06 == g_ucaFaultCode[1] ) \
                               || ( FAULT_CODE07 == g_ucaFaultCode[1] ) )    // 翻卡电机正转或者反转失败导致的发卡失败
                             {
                                 g_tCardSpitOutFrame.RSCTL = (g_uiSerNumPC++ % 10) + '0';
                                 g_tCardSpitOutFrame.CARD_MECHINE = '3';
                                 g_tCardSpitOutFrame.MECHINE_ID = mtRxMessage.Data[1] + '0';
-                                printf ("%s\n", (char *)&g_tCardSpitOutFrame);
+                                //printf ("%s\n", (char *)&g_tCardSpitOutFrame);
+                                USART1_SendStringFromDMA ((char *)&g_tCardSpitOutFrame , strlen ((char *)&g_tCardSpitOutFrame));
                             }
 
                             g_tCardMechineStatusFrame.RSCTL = (g_uiSerNumPC++ % 10) + '0';
@@ -640,7 +645,8 @@ u8 analyzeCANFrame ( CanRxMsg arg )
                             g_tCardMechineStatusFrame.UP_SPIT_IS_OK = g_ucUpWorkingID + '0';
                             g_tCardMechineStatusFrame.DOWN_SPIT_IS_OK = g_ucDownWorkingID + '0';
 
-                            printf ( "%s\n", ( char * ) &g_tCardMechineStatusFrame );
+                            //printf ( "%s\n", ( char * ) &g_tCardMechineStatusFrame );
+                            USART1_SendStringFromDMA ((char *)&g_tCardMechineStatusFrame , strlen ((char *)&g_tCardMechineStatusFrame));
 
                             g_ucaDeviceStatus[1] = 0;
                         }
@@ -657,14 +663,14 @@ u8 analyzeCANFrame ( CanRxMsg arg )
                             myCANTransmit ( gt_TxMessage, g_ucDownWorkingID, 0, SET_MECHINE_STATUS, WORKING_STATUS, 0, 0, NO_FAIL );
                             myCANTransmit ( gt_TxMessage, g_ucDownBackingID, 0, SET_MECHINE_STATUS, BACKING_STATUS, 0, 0, NO_FAIL ); // 设置工作态
 
-                            //if ( g_ucaDeviceStatus[2] > 0 )
                             if ( ( FAULT_CODE06 == g_ucaFaultCode[2] ) \
                               || ( FAULT_CODE07 == g_ucaFaultCode[2] ) )    // 翻卡电机正转或者反转失败导致的发卡失败
                             {
                                 g_tCardSpitOutFrame.RSCTL = (g_uiSerNumPC++ % 10) + '0';
                                 g_tCardSpitOutFrame.CARD_MECHINE = '3';
                                 g_tCardSpitOutFrame.MECHINE_ID = mtRxMessage.Data[1] + '0';
-                                printf ("%s\n", (char *)&g_tCardSpitOutFrame);
+                                //printf ("%s\n", (char *)&g_tCardSpitOutFrame);
+                                USART1_SendStringFromDMA ((char *)&g_tCardSpitOutFrame , strlen ((char *)&g_tCardSpitOutFrame));
                             }
 
                             g_tCardMechineStatusFrame.RSCTL = (g_uiSerNumPC++ % 10) + '0';
@@ -673,7 +679,8 @@ u8 analyzeCANFrame ( CanRxMsg arg )
                             g_tCardMechineStatusFrame.UP_SPIT_IS_OK = g_ucUpWorkingID + '0';
                             g_tCardMechineStatusFrame.DOWN_SPIT_IS_OK = g_ucDownWorkingID + '0';
 
-                            printf ( "%s\n", ( char * ) &g_tCardMechineStatusFrame );
+                            //printf ( "%s\n", ( char * ) &g_tCardMechineStatusFrame );
+                            USART1_SendStringFromDMA ((char *)&g_tCardMechineStatusFrame , strlen ((char *)&g_tCardMechineStatusFrame));
 
                             g_ucaDeviceStatus[2] = 0;
 
@@ -691,14 +698,14 @@ u8 analyzeCANFrame ( CanRxMsg arg )
                             myCANTransmit ( gt_TxMessage, g_ucDownWorkingID, 0, SET_MECHINE_STATUS, WORKING_STATUS, 0, 0, NO_FAIL );
                             myCANTransmit ( gt_TxMessage, g_ucDownBackingID, 0, SET_MECHINE_STATUS, BACKING_STATUS, 0, 0, NO_FAIL ); // 设置工作态
 
-                            //if ( g_ucaDeviceStatus[3] > 0 )
                             if ( ( FAULT_CODE06 == g_ucaFaultCode[3] ) \
                               || ( FAULT_CODE07 == g_ucaFaultCode[3] ) )    // 翻卡电机正转或者反转失败导致的发卡失败
                             {
                                 g_tCardSpitOutFrame.RSCTL = (g_uiSerNumPC++ % 10) + '0';
                                 g_tCardSpitOutFrame.CARD_MECHINE = '3';
                                 g_tCardSpitOutFrame.MECHINE_ID = mtRxMessage.Data[1] + '0';
-                                printf ("%s\n", (char *)&g_tCardSpitOutFrame);
+                                //printf ("%s\n", (char *)&g_tCardSpitOutFrame);
+                                USART1_SendStringFromDMA ((char *)&g_tCardSpitOutFrame , strlen ((char *)&g_tCardSpitOutFrame));
                             }
 
                             g_tCardMechineStatusFrame.RSCTL = (g_uiSerNumPC++ % 10) + '0';
@@ -707,7 +714,8 @@ u8 analyzeCANFrame ( CanRxMsg arg )
                             g_tCardMechineStatusFrame.UP_SPIT_IS_OK = g_ucUpWorkingID + '0';
                             g_tCardMechineStatusFrame.DOWN_SPIT_IS_OK = g_ucDownWorkingID + '0';
 
-                            printf ( "%s\n", ( char * ) &g_tCardMechineStatusFrame );
+                            //printf ( "%s\n", ( char * ) &g_tCardMechineStatusFrame );
+                            USART1_SendStringFromDMA ((char *)&g_tCardMechineStatusFrame , strlen ((char *)&g_tCardMechineStatusFrame));
 
                             g_ucaDeviceStatus[3] = 0;
                         }
@@ -835,7 +843,7 @@ u8  analyzeUartFrame ( const u8 argv[] , u32 size)
             case PC_SPIT_OUT_CARD:              /* 出卡信息(62H)帧 */
                 antSwitch( 0 );
                 g_ucBadCardCount = 0;
-                //TIM_SetCounter(GENERAL_TIM2, 0);      // 定时器清零,2s之后再次上报消息
+
                 switch (argv[3])
                 {
                     case '5':
@@ -889,7 +897,6 @@ u8  analyzeUartFrame ( const u8 argv[] , u32 size)
                     g_ucaDeviceStatus[2] = 0;
                     g_ucaDeviceStatus[3] = 0;
                     g_ucBadCardCount = 0;
-
                 }
 
                 g_tCardMechineStatusFrame.CARD_MECHINE1.antHasCard = g_ucaCardIsReady[0] + '0';
@@ -931,27 +938,17 @@ u8  analyzeUartFrame ( const u8 argv[] , u32 size)
                                     g_tCardMechineStatusFrame.UP_SPIT_IS_OK = g_ucUpWorkingID + '0';
                                     g_tCardMechineStatusFrame.DOWN_SPIT_IS_OK = g_ucDownWorkingID + '0';
 
-                                    printf ( "%s\n", ( char * ) &g_tCardMechineStatusFrame );
+                                    //printf ( "%s\n", ( char * ) &g_tCardMechineStatusFrame );
+                                    USART1_SendStringFromDMA ((char *)&g_tCardMechineStatusFrame , strlen ((char *)&g_tCardMechineStatusFrame));
 
                                     delayMs (150);
 
                                     g_tCardKeyPressFrame.RSCTL = (g_uiSerNumPC++ % 10) + '0';
                                     g_tCardKeyPressFrame.CARD_MECHINE = '1';
                                     g_tCardKeyPressFrame.MECHINE_ID = g_ucUpWorkingID + '0';
-                                    printf ( "%s\n", ( char * ) &g_tCardKeyPressFrame );
-                                    /*
-                                    if ( 1 > g_ucBadCardCount )
-                                    {
-                                        g_siStatusOverTimeL = 1000;      // 如果10还没有完成翻卡，则认为卡机有故障了
-                                        g_siStatusOverTimeS = 400;
-                                    }
-                                    else
-                                    {
-                                        g_ucaDeviceStatus[0] = 0;
-                                        g_ucaDeviceStatus[1] = 0;
-                                        g_ucaDeviceStatus[2] = 0;
-                                        g_ucaDeviceStatus[3] = 0;
-                                    }*/
+                                    //printf ( "%s\n", ( char * ) &g_tCardKeyPressFrame );
+                                    USART1_SendStringFromDMA ((char *)&g_tCardKeyPressFrame , strlen ((char *)&g_tCardKeyPressFrame));
+
                                 }
                             }
                         }
@@ -975,15 +972,16 @@ u8  analyzeUartFrame ( const u8 argv[] , u32 size)
                                     g_tCardMechineStatusFrame.UP_SPIT_IS_OK = g_ucUpWorkingID + '0';
                                     g_tCardMechineStatusFrame.DOWN_SPIT_IS_OK = g_ucDownWorkingID + '0';
 
-                                    printf ( "%s\n", ( char * ) &g_tCardMechineStatusFrame );
+                                    //printf ( "%s\n", ( char * ) &g_tCardMechineStatusFrame );
+                                    USART1_SendStringFromDMA ((char *)&g_tCardMechineStatusFrame , strlen ((char *)&g_tCardMechineStatusFrame));
 
                                     delayMs (150);
 
                                     g_tCardKeyPressFrame.RSCTL = (g_uiSerNumPC++ % 10) + '0';
                                     g_tCardKeyPressFrame.CARD_MECHINE = '1';
                                     g_tCardKeyPressFrame.MECHINE_ID = g_ucUpWorkingID + '0';
-                                    printf ( "%s\n", ( char * ) &g_tCardKeyPressFrame );
-
+                                    //printf ( "%s\n", ( char * ) &g_tCardKeyPressFrame );
+                                    USART1_SendStringFromDMA ((char *)&g_tCardKeyPressFrame , strlen ((char *)&g_tCardKeyPressFrame));
 
                                 }
                             }
@@ -1014,15 +1012,16 @@ u8  analyzeUartFrame ( const u8 argv[] , u32 size)
                                     g_tCardMechineStatusFrame.UP_SPIT_IS_OK = g_ucUpWorkingID + '0';
                                     g_tCardMechineStatusFrame.DOWN_SPIT_IS_OK = g_ucDownWorkingID + '0';
 
-                                    printf ( "%s\n", ( char * ) &g_tCardMechineStatusFrame );
+                                    //printf ( "%s\n", ( char * ) &g_tCardMechineStatusFrame );
+                                    USART1_SendStringFromDMA ((char *)&g_tCardMechineStatusFrame , strlen ((char *)&g_tCardMechineStatusFrame));
 
                                     delayMs (150);
 
                                     g_tCardKeyPressFrame.RSCTL = (g_uiSerNumPC++ % 10) + '0';
                                     g_tCardKeyPressFrame.CARD_MECHINE = '2';
                                     g_tCardKeyPressFrame.MECHINE_ID = g_ucDownWorkingID + '0';
-                                    printf ( "%s\n", ( char * ) &g_tCardKeyPressFrame );
-
+                                    //printf ( "%s\n", ( char * ) &g_tCardKeyPressFrame );
+                                    USART1_SendStringFromDMA ((char *)&g_tCardKeyPressFrame , strlen ((char *)&g_tCardKeyPressFrame));
                                 }
                             }
                         }
@@ -1046,14 +1045,16 @@ u8  analyzeUartFrame ( const u8 argv[] , u32 size)
                                     g_tCardMechineStatusFrame.UP_SPIT_IS_OK = g_ucUpWorkingID + '0';
                                     g_tCardMechineStatusFrame.DOWN_SPIT_IS_OK = g_ucDownWorkingID + '0';
 
-                                    printf ( "%s\n", ( char * ) &g_tCardMechineStatusFrame );
+                                    //printf ( "%s\n", ( char * ) &g_tCardMechineStatusFrame );
+                                    USART1_SendStringFromDMA ((char *)&g_tCardMechineStatusFrame , strlen ((char *)&g_tCardMechineStatusFrame));
 
                                     delayMs (150);
 
                                     g_tCardKeyPressFrame.RSCTL = (g_uiSerNumPC++ % 10) + '0';
                                     g_tCardKeyPressFrame.CARD_MECHINE = '2';
                                     g_tCardKeyPressFrame.MECHINE_ID = g_ucDownWorkingID + '0';
-                                    printf ( "%s\n", ( char * ) &g_tCardKeyPressFrame );
+                                    //printf ( "%s\n", ( char * ) &g_tCardKeyPressFrame );
+                                    USART1_SendStringFromDMA ((char *)&g_tCardKeyPressFrame , strlen ((char *)&g_tCardKeyPressFrame));
                                 }
                             }
                         }
