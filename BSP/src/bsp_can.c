@@ -293,6 +293,7 @@ void USB_LP_CAN1_RX0_IRQHandler(void)
     {
         if ( CYCLE_ACK == gt_RxMessage.Data[3] )            // 定时查询是否有卡
         {
+            g_ucaMechineExist[ gt_RxMessage.Data[1] - 1 ] = 1;
             if ( HAS_CARD  == gt_RxMessage.Data[4])
             {
                 g_ucaCardIsReady[gt_RxMessage.Data[1] - 1] = 1;

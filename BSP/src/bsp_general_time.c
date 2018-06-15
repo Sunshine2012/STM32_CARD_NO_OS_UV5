@@ -111,7 +111,7 @@ void  GENERAL_TIM3_IRQHandler (void)
 
                             g_tCardTakeAwayFrame.MECHINE_ID = g_ucCurOutCardId + '0';
                             g_tCardTakeAwayFrame.CARD_MECHINE = g_ucCurOutCardId < 3 ? '1' : '2';
-                            printf ( "%s\n", ( char * ) &g_tCardTakeAwayFrame );
+                            USART1_SendStringFromDMA ((char *)&g_tCardTakeAwayFrame , strlen ((char *)&g_tCardTakeAwayFrame));
 
                             g_uiCurNum = g_tCardTakeAwayFrame.RSCTL;
                         }

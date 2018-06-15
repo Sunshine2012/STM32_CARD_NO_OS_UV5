@@ -199,7 +199,6 @@ void USART1_Config(void)
     // 使能串口
     USART_Cmd(macUSART1, ENABLE);
 
-
     // 清除发送完成标志
     //USART_ClearFlag(USART1, USART_FLAG_TC);
 }
@@ -311,6 +310,3 @@ int fgetc(FILE *f)
 }
 /*********************************************END OF FILE**********************/
 #endif
-
-
-

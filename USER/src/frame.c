@@ -98,14 +98,14 @@ const Print_msg g_taShowStatus_msg[] = {
                             {CARD_IS_BAD,                   "坏卡"},
                             {IS_WORKING,                    "工作"},
                             {IS_BACKING,                    "备用"},
-                            {0xfe,                          "    "},
+                            {CONNECTED,                     "    "},
                             {0xff,NULL}
                         };
 const Print_msg g_taShowFaultCode_msg[] = {
                             {0,                             "NULL"},
                             {CARD_IS_OK,                    "好卡"},
                             {CARD_IS_BAD,                   "坏卡"},
-                            {0xfe,                          "    "},
+                            {CONNECTED,                     "    "},
                             {0xff,NULL}
                         };
 // 天线的切换,4个天线,对应着不同的逻辑,需要同时使能不同的继电器
@@ -435,11 +435,8 @@ u8 analyzeCANFrame ( CanRxMsg arg )
                 }
                 else
                 {
-                        //g_siStatusOverTimeL = 2000;
-                        //g_siKeyMsgLockTime = 100;
-                        //g_ucLockPressKey = 1;
-                        myCANTransmit ( gt_TxMessage, mtRxMessage.Data[1], 0, WRITE_CARD_STATUS, 0x10, 0, 0, NO_FAIL );
-                        g_ucaDeviceStatus[mtRxMessage.Data[1] - 1] = 0;
+                    myCANTransmit ( gt_TxMessage, mtRxMessage.Data[1], 0, WRITE_CARD_STATUS, 0x10, 0, 0, NO_FAIL );
+                    g_ucaDeviceStatus[mtRxMessage.Data[1] - 1] = 0;
                 }
             }
             break;
@@ -748,65 +745,6 @@ u8 analyzeCANFrame ( CanRxMsg arg )
 
             break;
         case CYCLE_ACK:                 // 定时轮询回复
-            /*
-            switch( mtRxMessage.Data[1] )
-            {
-                case 1:
-                    if ( (g_ucUpWorkingID == 1 ) && (WORKING_STATUS != mtRxMessage.Data[2]))
-                    {
-                        myCANTransmit ( gt_TxMessage, g_ucUpWorkingID, 0, SET_MECHINE_STATUS, WORKING_STATUS, 0, 0, NO_FAIL );
-                        myCANTransmit ( gt_TxMessage, g_ucUpBackingID, 0, SET_MECHINE_STATUS, WORKING_STATUS, 0, 0, NO_FAIL );
-
-                    }
-                    else if ( (g_ucUpWorkingID == 2 ) && (WORKING_STATUS == mtRxMessage.Data[2]))
-                    {
-                        myCANTransmit ( gt_TxMessage, g_ucUpWorkingID, 0, SET_MECHINE_STATUS, WORKING_STATUS, 0, 0, NO_FAIL );
-                        myCANTransmit ( gt_TxMessage, g_ucUpBackingID, 0, SET_MECHINE_STATUS, BACKING_STATUS, 0, 0, NO_FAIL ); // 设置工作态
-                    }
-                    break;
-                case 2:
-                    if ( (g_ucUpWorkingID == 2 ) && (WORKING_STATUS != mtRxMessage.Data[2]))
-                    {
-                        myCANTransmit ( gt_TxMessage, g_ucUpWorkingID, 0, SET_MECHINE_STATUS, WORKING_STATUS, 0, 0, NO_FAIL );
-                        myCANTransmit ( gt_TxMessage, g_ucUpBackingID, 0, SET_MECHINE_STATUS, BACKING_STATUS, 0, 0, NO_FAIL );
-
-                    }
-                    else if ( (g_ucUpWorkingID == 1 ) && (WORKING_STATUS == mtRxMessage.Data[2]))
-                    {
-                        myCANTransmit ( gt_TxMessage, g_ucUpWorkingID, 0, SET_MECHINE_STATUS, WORKING_STATUS, 0, 0, NO_FAIL );
-                        myCANTransmit ( gt_TxMessage, g_ucUpBackingID, 0, SET_MECHINE_STATUS, BACKING_STATUS, 0, 0, NO_FAIL ); // 设置工作态
-                    }
-                    break;
-                case 3:
-                    if ( (g_ucDownWorkingID == 3 ) && (WORKING_STATUS != mtRxMessage.Data[2]))
-                    {
-                        myCANTransmit ( gt_TxMessage, g_ucDownWorkingID, 0, SET_MECHINE_STATUS, WORKING_STATUS, 0, 0, NO_FAIL );
-                        myCANTransmit ( gt_TxMessage, g_ucDownBackingID, 0, SET_MECHINE_STATUS, BACKING_STATUS, 0, 0, NO_FAIL );
-
-                    }
-                    else if ( (g_ucDownWorkingID == 4 ) && (WORKING_STATUS == mtRxMessage.Data[2]))
-                    {
-                        myCANTransmit ( gt_TxMessage, g_ucDownWorkingID, 0, SET_MECHINE_STATUS, WORKING_STATUS, 0, 0, NO_FAIL );
-                        myCANTransmit ( gt_TxMessage, g_ucDownBackingID, 0, SET_MECHINE_STATUS, BACKING_STATUS, 0, 0, NO_FAIL ); // 设置工作态
-                    }
-                    break;
-                case 4:
-                    if ( (g_ucDownWorkingID == 4 ) && (WORKING_STATUS != mtRxMessage.Data[2]))
-                    {
-                        myCANTransmit ( gt_TxMessage, g_ucDownWorkingID, 0, SET_MECHINE_STATUS, WORKING_STATUS, 0, 0, NO_FAIL );
-                        myCANTransmit ( gt_TxMessage, g_ucDownBackingID, 0, SET_MECHINE_STATUS, BACKING_STATUS, 0, 0, NO_FAIL );
-
-                    }
-                    else if ( (g_ucDownWorkingID == 3 ) && (WORKING_STATUS == mtRxMessage.Data[2]))
-                    {
-                        myCANTransmit ( gt_TxMessage, g_ucDownWorkingID, 0, SET_MECHINE_STATUS, WORKING_STATUS, 0, 0, NO_FAIL );
-                        myCANTransmit ( gt_TxMessage, g_ucDownBackingID, 0, SET_MECHINE_STATUS, BACKING_STATUS, 0, 0, NO_FAIL ); // 设置工作态
-                    }
-                    break;
-                default:
-                    break;
-            }
-            */
             if ( mtRxMessage.Data[4] == HAS_CARD )
             {
                 g_ucaCardIsReady[mtRxMessage.Data[1] - 1] = 1;

@@ -100,35 +100,35 @@ void lcdRef()
         {
 
             case DLG_STATUS:
-                doShowStatusMenu( DLG_STATUS, 5, NULL ); // 显示主界面菜单,当前状态
+                doShowStatusMenu ( DLG_STATUS, 5, NULL ); // 显示主界面菜单,当前状态
                 break;
 
             case DLG_EMPLOYEE_MENU:
-                doShowEmployeeMenu( DLG_EMPLOYEE_MENU, 5, NULL ); // 显示主界面菜单,当前状态
+                doShowEmployeeMenu ( DLG_EMPLOYEE_MENU, 5, NULL ); // 显示主界面菜单,当前状态
                 break;
 
             case DLG_MAIN:
-                doShowMainMenu( DLG_MAIN, 0, NULL );    // 进入设置状态
+                doShowMainMenu ( DLG_MAIN, 0, NULL );    // 进入设置状态
                 break;
 
             case DLG_WORKING_SET:
-                doShowWorkingSet( DLG_WORKING_SET, 1, NULL );
+                doShowWorkingSet ( DLG_WORKING_SET, 1, NULL );
                 break;
 
             case DLG_STATUS_ONE:
-                doShowStatusOne( DLG_STATUS_ONE, 5, NULL );
+                doShowStatusOne ( DLG_STATUS_ONE, 5, NULL );
                 break;
 
             case DLG_STATUS_TWO:
-                doShowStatusTwo( DLG_STATUS_TWO, 5, NULL );
+                doShowStatusTwo ( DLG_STATUS_TWO, 5, NULL );
                 break;
 
             case DLG_CARD_COUNT_SET:
-                doShowCardCountSet( DLG_CARD_COUNT_SET, 0, NULL );
+                doShowCardCountSet ( DLG_CARD_COUNT_SET, 0, NULL );
                 break;
 
             case DLG_DEBUG_MAIN:
-                doShowDebugMain( DLG_DEBUG_MAIN, 0, NULL );
+                doShowDebugMain ( DLG_DEBUG_MAIN, 0, NULL );
                 break;
 
             case DLG_DEBUG_ONE:
@@ -249,6 +249,8 @@ int main( void )
     // 使能计数器
     TIM_Cmd(GENERAL_TIM3, ENABLE);
 
+    //IWDG_Init( 6, 625 );                                                        // 分频数为256,重载值为625,溢出时间为4s   (1/40000)* 256 * 625  = 4s          40000代表着独立看门狗的RC振荡器为40KHz
+
     while ( 1 )
     {
 
@@ -288,6 +290,7 @@ int main( void )
 
         memset ( &g_tCanRxMsg,0,sizeof (g_tCanRxMsg) );
         ret = canOutQueue( &g_tCanRxQueue, &g_tCanRxMsg );
+
         if ( 0 == ret )
         {
             analyzeCANFrame( g_tCanRxMsg );
@@ -295,6 +298,7 @@ int main( void )
 
         memset ( g_ucaUartRxMsg,0,50 );
         ret = uartOutQueue( &g_tUARTRxQueue, g_ucaUartRxMsg );
+
         if ( 0 == ret )
         {
             analyzeUartFrame( g_ucaUartRxMsg, strlen( (const char *)g_ucaUartRxMsg ) );
