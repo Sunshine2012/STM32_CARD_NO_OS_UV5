@@ -11,7 +11,7 @@ u8 g_ucUpWorkingID      = 1;            // 上工位工作卡机号
 u8 g_ucUpBackingID      = 2;            // 上工位备用卡机号
 u8 g_ucDownWorkingID    = 3;            // 下工位工作卡机号
 u8 g_ucDownBackingID    = 4;            // 下工位备用卡机号
-u8 g_ucCurOutCardId     = 1;            // 当前出卡的卡机号
+u8 g_ucCurOutCardId     = 0;            // 当前出卡的卡机号
 u8 g_ucLockPressKey     = 0;            // 按键锁定
 u8 g_ucRepeatKeyMechine = 0;            // 如果连续出现坏卡,则记录即将发卡的卡机,等待500ms之后,再次检测卡机是否就绪并上报状态
 u8 g_ucBadCardCount     = 0;            // 如果连续出现4张坏卡,则记录即将发卡的卡机,则不再发卡
@@ -21,18 +21,26 @@ u8 g_ucaDeviceStatus[4] = {0, 0, 0, 0}; // 上或下两个卡机处于待机(Standby)状态下
 u8 g_ucaMechineExist[4] = {0, 0, 0, 0}; // 卡机是否存在并通信正常
 u8 g_ucaHasBadCard[4]  = {0, 0, 0, 0};  // 有坏卡
 u8 g_ucaMasterStandbyStatus[4]  = {0, 0, 0, 0};  // 卡机的主备机状态
-u8 g_ucaStatus[4]  = {0x0a, 0x0a, 0x0a, 0x0a};      // 卡机的工作状态
+u8 g_ucaStatus[4]  = {0xaa, 0xaa, 0xaa, 0xaa};      // 卡机的工作状态
 
 u8 g_ucP_RsctlFrame = 0;                 // 收到一帧正确的数据
 u8 g_ucIsUpdateMsgFlag = 0;              // 向PC上报卡机消息标志位
 u8 g_ucIsCycleMsgFlag = 0;               // 向卡机发送定时查询消息标志位
+u8 g_ucIsCheckMsgFlag = 0;               // 向卡机发送设置主备机标志位
 
 u8 g_ucKeyPressCount = 0;                // 在2秒钟连续按键6次,则重启设备
 
 CanQueue  g_tCanRxQueue = {0};        // CAN接收卡机数据队列
+CanQueue  g_tCanTxQueue = {0};        // CAN发送给卡机数据队列
+
 UartQueue g_tUARTRxQueue = {0};       // UART接收PC机数据队列
-CanRxMsg  g_tCanRxMsg = {0};          // CAN数据出队元素
-u8 g_ucaUartRxMsg[50] = {0};          // UART数据出队元素
+UartQueue g_tUARTTxQueue = {0};       // UART发送给PC机数据队列
+
+CanRxMsg  g_tCanRxMsg = {0};          // CAN接收数据出队元素
+CanRxMsg  g_tCanTxMsg = {0};          // CAN发送数据出队元素
+
+u8 g_ucaUartRxMsg[50] = {0};          // UART接收数据出队元素
+u8 g_ucaUartTxMsg[50] = {0};          // UART接收数据出队元素
 
 u32 g_uiSerNum = 0;     // 帧序号,全局,卡机与主机之间的帧序号
 u32 g_uiSerNumPC = 0;   // 帧序号,全局,PC与主机之间的帧序号
@@ -49,25 +57,24 @@ void bspInit( void )
 {
     int i = 0;
     delayInit();                                                                // 定时函数
-    for (i = 0; i < 20; i++)    // 初始化时间延时20秒,避免卡机没有初始化完成
-    {
-        //delayMs (1000);
-    }
+
     LED_Init();                                                                 // 初始化 LED
     antGPIOInit();  // 天线切换引脚初始化
 
-    uartInitQueue( &g_tUARTRxQueue);                                            // 初始化 USART1
-    USART1_Config();
+    uartInitQueue( &g_tUARTRxQueue);
+    uartInitQueue( &g_tUARTTxQueue);
+    USART1_Config();                                                            // 初始化 USART1
 
     //USART4_Config ();         // 初始化 USART4
-    DAC_init();
+    //DAC_init();
     matrixKeyboardInit();
     lcdInit();
     canInitQueue( &g_tCanRxQueue );
+    canInitQueue( &g_tCanTxQueue );
     canInit();                                                                  // 初始化CAN通信
 
-    generalTIM2Init();          // 定时器初始化,2s定时上报状态信息
-    generalTIM3Init();          // 定时器初始化,30s定时无按键按下,退回到主界面
+    generalTIM2Init();                                                          // 定时器2初始化
+    generalTIM3Init();                                                          // 定时器3初始化
     //I2C_Configuration();
 
     IWDG_Init( 6, 625 );                                                        // 分频数为256,重载值为625,溢出时间为4s   (1/40000)* 256 * 625  = 4s          40000代表着独立看门狗的RC振荡器为40KHz
@@ -185,8 +192,7 @@ void updateMsg(void)
     g_tCardMechineStatusFrame.UP_SPIT_IS_OK = g_ucUpWorkingID + '0';
     g_tCardMechineStatusFrame.DOWN_SPIT_IS_OK = g_ucDownWorkingID + '0';
 
-    USART1_SendStringFromDMA ((char *)&g_tCardMechineStatusFrame , strlen ((char *)&g_tCardMechineStatusFrame)); // 2秒上报一次系统消息
-
+    uartInQueue( &g_tUARTTxQueue, (char *)&g_tCardMechineStatusFrame ); // 不考虑竞争,所以不设置自旋锁
 }
 
 int main( void )
@@ -194,7 +200,7 @@ int main( void )
 {
     u8 ret = 0;
     u8 i = 0;
-
+    u8 version[50] = {0};
     bspInit();
 
     STMFLASH_Read(FLASH_SAVE_ADDR,(u16*)&g_ucConnectMode,1);                    // 获取g_ucConnectMode值,默认为上位机离线发卡模式
@@ -219,11 +225,11 @@ int main( void )
     delayMs( 5 ); // 等待卡机回复
     myCANTransmit( gt_TxMessage, g_ucDownBackingID, 0, SET_MECHINE_STATUS, BACKING_STATUS, 0, 0, 0 ); // 设置备用态
 
+    sprintf (version, "the version is %s,%s\n", __DATE__,__TIME__); // 打印当前版本号和编译日期
 
-    printf ("the code version %s,%s\n", __DATE__,__TIME__); // 打印当前版本号和编译日期
+    uartInQueue( &g_tUARTTxQueue, (char *)version ); // 不考虑竞争,所以不设置自旋锁
 
-    //printf ("%s\n",( char * ) &g_tCardMechinePowerOnFrame);                   // 上电初始化
-    USART1_SendStringFromDMA ((char *)&g_tCardMechinePowerOnFrame , strlen ((char *)&g_tCardMechinePowerOnFrame));
+    uartInQueue( &g_tUARTTxQueue, (char *)&g_tCardMechinePowerOnFrame ); // 上电初始化    不考虑竞争,所以不设置自旋锁
 
     delayMs( 100 ); // 等待卡机回复
     for ( i = 0; i < 4; i++)
@@ -238,32 +244,69 @@ int main( void )
 
     g_siKeyTime = 100;
 
-    g_siaCheck[0] = 1200;
-    g_siaCheck[1] = 1200;
-    g_siaCheck[2] = 1200;
-    g_siaCheck[3] = 1200;
-
-    g_siCycleAskMsgTime = 2;      // 4秒查询一次卡机状态
     // 使能计数器
     TIM_Cmd(GENERAL_TIM2, ENABLE);
     // 使能计数器
     TIM_Cmd(GENERAL_TIM3, ENABLE);
-
-    //IWDG_Init( 6, 625 );                                                        // 分频数为256,重载值为625,溢出时间为4s   (1/40000)* 256 * 625  = 4s          40000代表着独立看门狗的RC振荡器为40KHz
-
+    //g_siSendToPcMsgTime = 5;
     while ( 1 )
     {
-
-        if ( 1 == g_ucP_RsctlFrame )
-        {
-            g_ucP_RsctlFrame = 0;
-            USART1_SendStringFromDMA ((char *)&g_tP_RsctlFrame , strlen ((char *)&g_tP_RsctlFrame));
-        }
 
         if ( 1 == g_ucIsUpdateMsgFlag )
         {
             g_ucIsUpdateMsgFlag = 0;
             updateMsg();    // 2秒更新一次上位机数据
+        }
+
+        if (1 == g_ucIsCheckMsgFlag)    // 10秒发送一次查询卡机信息之后,等待50ms之后再次检测卡机是都是备机状态,如果是,则设置主备机
+        {
+            g_ucIsCheckMsgFlag = 0;
+            if ( ( WORKING_STATUS != g_ucaMasterStandbyStatus [0] ) \
+                  && ( WORKING_STATUS != g_ucaMasterStandbyStatus [1] ) ) // 都为备机
+            {
+                if ( ( g_ucaStatus[0] == 0 )
+                  && ( g_ucaStatus[1] == 0 ) )
+                {
+                    if ( 1 == g_ucUpWorkingID )
+                    {
+                        myCANTransmit ( gt_TxMessage, g_ucUpWorkingID, 0, SET_MECHINE_STATUS, WORKING_STATUS, 0, 0, NO_FAIL );
+                        myCANTransmit ( gt_TxMessage, g_ucUpBackingID, 0, SET_MECHINE_STATUS, BACKING_STATUS, 0, 0, NO_FAIL );
+                    }
+                    else if ( 2 == g_ucUpWorkingID )
+                    {
+                        myCANTransmit ( gt_TxMessage, g_ucUpWorkingID, 0, SET_MECHINE_STATUS, WORKING_STATUS, 0, 0, NO_FAIL );
+                        myCANTransmit ( gt_TxMessage, g_ucUpBackingID, 0, SET_MECHINE_STATUS, BACKING_STATUS, 0, 0, NO_FAIL );
+                    }
+                }
+
+                }
+            if ( ( WORKING_STATUS != g_ucaMasterStandbyStatus [2] ) \
+              && ( WORKING_STATUS != g_ucaMasterStandbyStatus [3] ) ) // 都为备机
+            {
+                if ( ( g_ucaStatus[2] == 0 )
+                  && ( g_ucaStatus[3] == 0 ) )
+                {
+                    if ( 3 == g_ucDownWorkingID )
+                    {
+                        myCANTransmit ( gt_TxMessage, g_ucDownWorkingID, 0, SET_MECHINE_STATUS, WORKING_STATUS, 0, 0, NO_FAIL );
+                        myCANTransmit ( gt_TxMessage, g_ucDownBackingID, 0, SET_MECHINE_STATUS, BACKING_STATUS, 0, 0, NO_FAIL );
+                    }
+                    else if ( 4 == g_ucDownWorkingID )
+                    {
+                        myCANTransmit ( gt_TxMessage, g_ucDownWorkingID, 0, SET_MECHINE_STATUS, WORKING_STATUS, 0, 0, NO_FAIL );
+                        myCANTransmit ( gt_TxMessage, g_ucDownBackingID, 0, SET_MECHINE_STATUS, BACKING_STATUS, 0, 0, NO_FAIL );
+                    }
+                }
+            }
+            g_ucaStatus[0] = 0xaa;
+            g_ucaStatus[1] = 0xaa;
+            g_ucaStatus[2] = 0xaa;
+            g_ucaStatus[3] = 0xaa;
+
+            g_ucaMasterStandbyStatus[0] = 0;
+            g_ucaMasterStandbyStatus[1] = 0;
+            g_ucaMasterStandbyStatus[2] = 0;
+            g_ucaMasterStandbyStatus[3] = 0;
         }
 
         if ( 1 == g_ucIsCycleMsgFlag )
@@ -277,14 +320,6 @@ int main( void )
             delayMs ( 1 );
             myCANTransmit( gt_TxMessage, g_ucDownBackingID, 0, CYCLE_ASK, 0, 0, 0, 0 ); // 查询是否有卡
 
-            g_ucaMasterStandbyStatus[0] = 0;
-            g_ucaMasterStandbyStatus[1] = 0;
-            g_ucaMasterStandbyStatus[2] = 0;
-            g_ucaMasterStandbyStatus[3] = 0;
-            g_ucaStatus[0] = 0x0a;
-            g_ucaStatus[1] = 0x0a;
-            g_ucaStatus[2] = 0x0a;
-            g_ucaStatus[3] = 0x0a;
             g_siCheckStatus = 5;        // 收到定时轮询的信息之后,50ms发送一次检验主备机的状态
         }
 
@@ -307,9 +342,6 @@ int main( void )
         matrixUpdateKey();          // 扫描按键
         lcdRef();                   // 刷新显示
         IWDG_Feed();                // 如果没有产生硬件错误,喂狗,以防硬件问题造成的司机,程序无响应
-
-        //delayMs (1);
-
     }
 }
 
