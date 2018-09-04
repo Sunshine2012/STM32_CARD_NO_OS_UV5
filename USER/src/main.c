@@ -40,7 +40,7 @@ CanRxMsg  g_tCanRxMsg = {0};          // CAN接收数据出队元素
 CanRxMsg  g_tCanTxMsg = {0};          // CAN发送数据出队元素
 
 u8 g_ucaUartRxMsg[50] = {0};          // UART接收数据出队元素
-u8 g_ucaUartTxMsg[50] = {0};          // UART接收数据出队元素
+u8 g_ucaUartTxMsg[50] = {0};          // UART发送数据出队元素
 
 u32 g_uiSerNum = 0;     // 帧序号,全局,卡机与主机之间的帧序号
 u32 g_uiSerNumPC = 0;   // 帧序号,全局,PC与主机之间的帧序号
